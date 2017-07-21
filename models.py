@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+from numpy import linalg as LA
 
 slim = tf.contrib.slim
 
@@ -44,8 +46,15 @@ def vgg_16(inputs, num_cate = 50, num_attr = 1000, dropout_keep_prob = 0.5,
             return net1, net2, end_points
 vgg_16.default_image_size = 224
 
-def closest_l2_distance(feature_dict, query):
-    
-    
+def closest_l2_distance(feature_and_path, query):
 
+    _dists = []
+    for _tuple in feature_and_path:
+        feature, path = _tuple
+        dist = LA.norm(feature - query)
+        _dists.append(dist)
 
+    closests = np.argsort(_dists)[:5]
+
+    paths = [feature_and_path[idx][1] for idx in closests]
+    return paths

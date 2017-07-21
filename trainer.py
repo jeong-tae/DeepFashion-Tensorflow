@@ -22,6 +22,7 @@ class Trainer(object):
         self.g_step = tf.Variable(0)
         self.lr = tf.train.exponential_decay(lr, self.g_step, 50000, 0.98)
         self.batch_size = batch_size
+        self.image_size = image_size
         self.max_epoch = epoch
         self.d_loader = Data_loader(root, cate_path, attr_path, partition_path, self.batch_size, image_size)
 
@@ -31,7 +32,9 @@ class Trainer(object):
 
     def build_model(self):
 
-        self.pred_cate, self.pred_attr, end_points = vgg_16(self.input_images, num_cate = self.num_cate, num_attr = self.num_attr, dropout_keep_prob = self.dropout_keep_prob) 
+        self.pred_cate, self.pred_attr, self.end_points = vgg_16(self.input_images, 
+                num_cate = self.num_cate, num_attr = self.num_attr, 
+                dropout_keep_prob = self.dropout_keep_prob) 
 
         cate_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels = self.input_cate, logits = self.pred_cate))
         #attr_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = self.input_attr, logits = self.pred_attr))
@@ -42,7 +45,7 @@ class Trainer(object):
 
         self.sess = tf.Session()
 
-        print(" [*] train ready")
+        print(" [*] model ready")
 
     def top_k_acc(self, preds, sparse_labels, k):
 
@@ -134,3 +137,14 @@ class Trainer(object):
         acc = 100.0 * np.sum(np.argmax(test_preds, 1) == test_cates) / test_preds.shape[0]
         acc5 = self.top_k_acc(test_preds, test_cates, k = 5)
         print("epoch: %d, test acc: %.2f, top5 acc: %.2f"%(i, acc, acc5))
+
+    def demo(self, test_img):
+
+        test_img = np.reshape(test_img, [-1, self.image_size, self.image_size, 3])
+        features = self.sess.run([self.end_points['vgg_16/fc7']],
+                feed_dict = {
+                    self.input_images: test_img,
+                    self.dropout_keep_prob: 1.0
+                })
+
+        return np.reshape(features, [-1, 4096])
