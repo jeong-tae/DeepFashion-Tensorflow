@@ -56,6 +56,8 @@ def main(_):
         demo_module.sess.run([tf.global_variables_initializer(), 
                 tf.local_variables_initializer()])
 
+        coord = tf.train.Coordinator()
+        tf.train.start_queue_runners(sess = demo_module.sess, coord = coord)
         from scipy import misc
 
         if os.path.exists("./data/retrieval.pkl"):
@@ -69,6 +71,7 @@ def main(_):
             for f in test_files:
                 img = misc.imread(f)
                 img = misc.imresize(img, (image_size, image_size)) * (1. / 255) - 0.5
+                
                 feature = demo_module.demo(test_img = img)
                 feature_and_paths.append( (feature, f) )
 
@@ -78,10 +81,11 @@ def main(_):
             print(" [*] retrieval data saved at ./data/retrieval.pkl")
         print(" [*] retrieval ready")
 
-        val_files = demo_module.d_loader._d['val_files']
+        val_files = demo_module.d_loader._d['test_files']
         index = np.random.randint(10000, size = 1)
 
         f = val_files[index[0]]
+        print(" example: %s"%f)
         img = misc.imread(f)
         img = misc.imresize(img, (image_size, image_size)) * (1. / 255) - 0.5
         feature = demo_module.demo(test_img = img)
