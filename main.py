@@ -4,15 +4,16 @@ import tensorflow as tf
 import pickle, os
 import numpy as np
 
-batch_size = 50
+batch_size = 25
 image_size = 224
 lr = 0.005
 epoch = 10
 checkpoint_dir = './data/'
 
 flags = tf.app.flags
-flags.DEFINE_boolean("feature_learning", False, "True, if you want to train feature extractor, otherwise False")
-flags.DEFINE_boolean("retrieval", True, "True, if you want to search similar images by query image")
+flags.DEFINE_boolean("feature_learning", True, "True, if you want to train feature extractor, otherwise False")
+flags.DEFINE_boolean("retrieval", False, "True, if you want to search similar images by query image")
+flags.DEFINE_boolean("fine_tune", False, "True, if you want to train from existing model")
 FLAGS = flags.FLAGS
 
 def main(_):
@@ -24,7 +25,7 @@ def main(_):
 
         train_module.saver = tf.train.Saver()
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-        if ckpt:
+        if ckpt and FLAGS.fine_tune:
             train_module.saver.restore(train_module.sess, ckpt)
         else:
             print(" [!] Not found checkpoint")
@@ -39,7 +40,8 @@ def main(_):
         train_module.test()
         tf.reset_default_graph()
         train_module.sess.close()
-    elif FLAGS.retrieval == True:
+
+    if FLAGS.retrieval == True:
         
         demo_module = Trainer(batch_size, image_size, 0., 1)
         demo_module.build_model()
