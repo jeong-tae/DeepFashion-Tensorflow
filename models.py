@@ -27,9 +27,9 @@ def vgg_16(inputs, num_cate = 50, num_attr = 1000, dropout_keep_prob = 0.5,
             net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope = 'conv5')
             net = slim.max_pool2d(net, [2, 2], scope = 'pool5')
 
-            net = slim.conv2d(net, 4096, [7, 7], padding = padding, scope = 'fc6')
+            net = slim.conv2d(net, 1024, [7, 7], padding = padding, scope = 'fc6')
             net = slim.dropout(net, dropout_keep_prob, scope='dropout6')
-            net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
+            net = slim.conv2d(net, 512, [1, 1], scope='fc7')
             net = slim.dropout(net, dropout_keep_prob, scope='dropout7')
             net1 = slim.conv2d(net, num_cate, [1, 1],
                     activation_fn = None, normalizer_fn = None, scope = 'fc8-c')

@@ -7,7 +7,7 @@ import numpy as np
 batch_size = 25
 image_size = 224
 lr = 0.005
-epoch = 10
+epoch = 5
 checkpoint_dir = './data/'
 
 flags = tf.app.flags
@@ -37,7 +37,7 @@ def main(_):
 
         train_module.train()
 
-        train_module.test()
+        train_module.test(epoch)
         tf.reset_default_graph()
         train_module.sess.close()
 

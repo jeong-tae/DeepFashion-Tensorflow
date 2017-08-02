@@ -34,21 +34,23 @@ class Trainer(object):
 
     def build_model(self):
 
-        pred_triple, self.pred_attr, self.end_points = vgg_16(tf.concat([self.input_images, self.pos_images, self.neg_images], 0), 
+        pred_triple, pred_attr, self.end_points = vgg_16(tf.concat([self.input_images, self.pos_images, self.neg_images], 0), 
                 num_cate = self.num_cate, num_attr = self.num_attr, 
                 dropout_keep_prob = self.dropout_keep_prob) 
         self.pred_cate, pos_cate, neg_cate = tf.split(pred_triple, 3)
+        self.pred_attr, _, _ = tf.split(pred_attr, 3)
 
         cate_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels = self.input_cate, logits = self.pred_cate))
-        #attr_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = self.input_attr, logits = self.pred_attr))
+        attr_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = self.input_attr, logits = self.pred_attr))
         pos_dist = tf.sqrt(tf.reduce_sum(tf.pow(self.pred_cate - pos_cate, 2), reduction_indices = 1))
         neg_dist = tf.sqrt(tf.reduce_sum(tf.pow(self.pred_cate - neg_cate, 2), reduction_indices = 1))
         triplet_cost = tf.reduce_mean(pos_dist - neg_dist)
         triplet_cost = tf.clip_by_value(triplet_cost, -40., 40.)
+        attr_loss = tf.clip_by_value(attr_loss, 0., 40.)
         # 0.5 for margin
         triplet_loss = tf.maximum(0.0, 0.5 + tf.reduce_mean(pos_dist - neg_dist))
 
-        self.loss = cate_loss + triplet_loss # + attr_loss
+        self.loss = cate_loss + triplet_loss + attr_loss
         optimizer = tf.train.AdamOptimizer(self.lr)
         self.train_op = optimizer.minimize(self.loss, global_step = self.g_step)
 
@@ -87,6 +89,7 @@ class Trainer(object):
                 
                 if g_step % 100 == 0:
                     val_loss = self.validation(g_step)
+                    self.test(i)
                     if val_loss < prev_loss:
                         self.saver.save(self.sess, os.path.join("./data/",
                                     "deepfashion.ckpt"), global_step = g_step)
@@ -98,6 +101,7 @@ class Trainer(object):
                 if counting > 50:
                     print(" [*] Early stopping")
                     break
+            self.test(i)
         print(" [*] train end")
             
 
@@ -131,7 +135,7 @@ class Trainer(object):
 
         return mean_loss
 
-    def test(self):
+    def test(self, i):
         
         test_len = int(10000. / self.batch_size)
         test_preds = []
@@ -161,6 +165,8 @@ class Trainer(object):
         features = self.sess.run([self.end_points['vgg_16/fc7']],
                 feed_dict = {
                     self.input_images: test_img,
+                    self.pos_images: test_img, # dummy
+                    self.neg_images: test_img, # dummy
                     self.dropout_keep_prob: 1.0
                 })
 
