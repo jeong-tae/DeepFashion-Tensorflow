@@ -6,14 +6,14 @@ import numpy as np
 
 batch_size = 25
 image_size = 224
-lr = 0.005
+lr = 0.00001
 epoch = 5
 checkpoint_dir = './data/'
 
 flags = tf.app.flags
 flags.DEFINE_boolean("feature_learning", True, "True, if you want to train feature extractor, otherwise False")
 flags.DEFINE_boolean("retrieval", False, "True, if you want to search similar images by query image")
-flags.DEFINE_boolean("fine_tune", False, "True, if you want to train from existing model")
+flags.DEFINE_boolean("fine_tune", True, "True, if you want to train from existing model")
 FLAGS = flags.FLAGS
 
 def main(_):

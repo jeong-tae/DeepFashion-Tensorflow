@@ -40,17 +40,18 @@ class Trainer(object):
         self.pred_cate, pos_cate, neg_cate = tf.split(pred_triple, 3)
         self.pred_attr, _, _ = tf.split(pred_attr, 3)
 
-        cate_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels = self.input_cate, logits = self.pred_cate))
-        attr_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = self.input_attr, logits = self.pred_attr))
+        self.cate_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels = self.input_cate, logits = self.pred_cate))
+        self.attr_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = self.input_attr, logits = self.pred_attr))
         pos_dist = tf.sqrt(tf.reduce_sum(tf.pow(self.pred_cate - pos_cate, 2), reduction_indices = 1))
         neg_dist = tf.sqrt(tf.reduce_sum(tf.pow(self.pred_cate - neg_cate, 2), reduction_indices = 1))
-        triplet_cost = tf.reduce_mean(pos_dist - neg_dist)
-        triplet_cost = tf.clip_by_value(triplet_cost, -40., 40.)
-        attr_loss = tf.clip_by_value(attr_loss, 0., 40.)
+        # deprecated cost
+        #triplet_cost = tf.reduce_mean(pos_dist - neg_dist)
+        #triplet_cost = tf.clip_by_value(triplet_cost, -40., 40.)
+        self.attr_loss = tf.clip_by_value(self.attr_loss, 0., 40.)
         # 0.5 for margin
-        triplet_loss = tf.maximum(0.0, 0.5 + tf.reduce_mean(pos_dist - neg_dist))
+        self.triplet_loss = tf.maximum(0.0, 0.5 + tf.reduce_mean(pos_dist - neg_dist))
 
-        self.loss = cate_loss + triplet_loss + attr_loss
+        self.loss = self.cate_loss + self.triplet_loss + self.attr_loss
         optimizer = tf.train.AdamOptimizer(self.lr)
         self.train_op = optimizer.minimize(self.loss, global_step = self.g_step)
 
@@ -87,7 +88,7 @@ class Trainer(object):
                 acc5 = self.top_k_acc(c_preds, batch_cate, k = 5)
                 print("step: %d, acc: %.2f, top5 acc: %.2f, current loss: %.2f"%(batch_len*i + step, acc, acc5, loss))
                 
-                if g_step % 100 == 0:
+                if g_step % 10 == 0 or g_step == 0:
                     val_loss = self.validation(g_step)
                     self.test(i)
                     if val_loss < prev_loss:
@@ -142,7 +143,7 @@ class Trainer(object):
         test_cates = []
         for step in range(test_len):
             batch_img, batch_cate, batch_attr = self.sess.run([self.testX, self.testY1, self.testY2])
-            c_preds = self.sess.run([self.pred_cate],
+            c_preds, loss = self.sess.run([self.pred_cate, self.loss],
                         feed_dict = {
                             self.input_images: batch_img,
                             self.pos_images: batch_img, # dummy
